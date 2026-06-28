@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundMind — Recomendações Musicais</title>
+  <meta name="description" content="Sistema inteligente de recomendação musical. Avalie músicas e descubra novas faixas baseadas nos seus gostos." />
+  <meta name="author" content="SoundMind" />
+  <meta property="og:title" content="SoundMind — Recomendações Musicais" />
+  <meta property="og:description" content="Descubra novas músicas com base nos seus gostos musicais." />
+  <meta property="og:type" content="website" />
+
+  <!--
+    Anti-FOUC (Flash of Unstyled Content):
+    Aplica o tema salvo ANTES da primeira pintura do navegador.
+  -->
+  <script>
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('sm_state') || '{}');
+        if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Favicon SVG inline (sem arquivo externo necessário) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2300D98F' fill-opacity='0.15'/%3E%3Crect x='6' y='12' width='2.5' height='8' rx='1.25' fill='%2300D98F'/%3E%3Crect x='10' y='9' width='2.5' height='14' rx='1.25' fill='%2300D98F'/%3E%3Crect x='14' y='6' width='2.5' height='20' rx='1.25' fill='%2300D98F'/%3E%3Crect x='18' y='10' width='2.5' height='12' rx='1.25' fill='%2300D98F'/%3E%3Crect x='22' y='13' width='2.5' height='6' rx='1.25' fill='%2300D98F'/%3E%3C/svg%3E" />
+
+  <!-- Google Fonts: Space Grotesk (display) + Inter (body) + JetBrains Mono (stats) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome 6 Free -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Estilos da aplicação -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════════════
+       NAVBAR
+       ═══════════════════════════════════════════════════ -->
+  <header id="navbar" role="banner">
+
+    <!-- Marca / Logo -->
+    <a href="." class="nav-brand" aria-label="SoundMind – Página inicial">
+      <div class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="16" fill="var(--accent)" fill-opacity="0.12"/>
+          <rect x="7"  y="14" width="2.5" height="8"  rx="1.25" fill="var(--accent)"/>
+          <rect x="11" y="10" width="2.5" height="16" rx="1.25" fill="var(--accent)"/>
+          <rect x="15" y="7"  width="2.5" height="22" rx="1.25" fill="var(--accent)"/>
+          <rect x="19" y="11" width="2.5" height="14" rx="1.25" fill="var(--accent)"/>
+          <rect x="23" y="15" width="2.5" height="6"  rx="1.25" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <div class="nav-title">
+        <span class="logo-name">SoundMind</span>
+        <span class="logo-sub">Descoberta musical</span>
+      </div>
+    </a>
+
+    <!-- Campo de busca -->
+    <div class="nav-search" role="search">
+      <div class="search-wrap" id="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-ico" aria-hidden="true"></i>
+        <input
+          id="search-input"
+          type="text"
+          class="search-input"
+          placeholder="Buscar músicas, artistas ou gêneros…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Buscar músicas"
+        />
+        <button class="search-clear is-hidden" id="btn-clear-search" aria-label="Limpar busca">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Controles da navbar -->
+    <div class="nav-actions" role="toolbar" aria-label="Controles">
+      <button class="btn-ico" id="btn-reset" title="Reiniciar histórico" aria-label="Reiniciar histórico de avaliações">
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+      </button>
+      <button class="btn-ico" id="btn-theme" title="Alternar tema" aria-label="Alternar entre tema claro e escuro">
+        <i class="fa-solid fa-moon" aria-hidden="true"></i>
+      </button>
+    </div>
+
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════
+       NOTIFICAÇÕES TOAST
+       ═══════════════════════════════════════════════════ -->
+  <div id="toasts" aria-live="polite" aria-atomic="false" role="status"></div>
+
+  <!-- ═══════════════════════════════════════════════════
+       LAYOUT PRINCIPAL (grade de 3 colunas)
+       ═══════════════════════════════════════════════════ -->
+  <main id="layout" role="main">
+
+    <!-- ─────────────────────────────────────────────
+         COLUNA ESQUERDA: Preferências e Estatísticas
+         ───────────────────────────────────────────── -->
+    <aside id="sidebar" aria-label="Preferências musicais e estatísticas">
+
+      <!-- Barras de preferência por gênero -->
+      <div class="panel-block">
+        <h2 class="block-title">
+          <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+          Preferências
+        </h2>
+        <div id="genre-bars" role="list" aria-label="Pontuação por gênero musical">
+          <p class="empty-hint" id="bars-hint">
+            Avalie músicas para ver suas preferências aqui.
+          </p>
+        </div>
+      </div>
+
+      <!-- Estatísticas do usuário -->
+      <div class="panel-block">
+        <h2 class="block-title">
+          <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+          Estatísticas
+        </h2>
+        <dl id="user-stats">
+          <div class="stat-row">
+            <dt>Músicas avaliadas</dt>
+            <dd id="st-rated" class="mono">0</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Total de pontos</dt>
+            <dd id="st-total" class="mono">0</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Média por avaliação</dt>
+            <dd id="st-avg" class="mono">—</dd>
+          </div>
+          <div class="stat-row">
+            <dt>Gênero favorito</dt>
+            <dd id="st-fav"><span class="dash-val">—</span></dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Ação: limpar histórico -->
+      <button class="btn-outline btn-danger-hov" id="btn-clear-hist" aria-label="Limpar todo o histórico de avaliações">
+        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+        Limpar Histórico
+      </button>
+
+    </aside>
+
+    <!-- ─────────────────────────────────────────────
+         COLUNA CENTRAL: Catálogo de Músicas
+         ───────────────────────────────────────────── -->
+    <section id="catalog" aria-label="Catálogo de músicas">
+
+      <!-- Controles do catálogo: filtros + ordenação -->
+      <div class="catalog-controls">
+
+        <div id="genre-pills" class="genre-pills" role="group" aria-label="Filtrar por gênero">
+          <!-- Renderizado pelo JavaScript -->
+        </div>
+
+        <div class="sort-row" role="group" aria-label="Ordenar músicas por">
+          <span class="sort-lbl" aria-hidden="true">Ordenar:</span>
+          <button class="sort-btn active" data-sort="nome"    aria-pressed="true">Nome</button>
+          <button class="sort-btn"        data-sort="artista" aria-pressed="false">Artista</button>
+          <button class="sort-btn"        data-sort="genero"  aria-pressed="false">Gênero</button>
+        </div>
+
+      </div>
+
+      <!-- Contagem de resultados -->
+      <p id="catalog-count" class="catalog-count" aria-live="polite"></p>
+
+      <!-- Grade de cards de músicas -->
+      <div id="songs-grid" class="songs-grid" role="list" aria-label="Lista de músicas">
+        <!-- Renderizado pelo JavaScript -->
+      </div>
+
+      <!-- Estado vazio (nenhuma música encontrada) -->
+      <div id="empty-search" class="empty-state is-hidden" aria-live="polite">
+        <div class="empty-ico" aria-hidden="true">
+          <i class="fa-solid fa-record-vinyl"></i>
+        </div>
+        <h3>Nenhuma música encontrada</h3>
+        <p>Tente outros termos ou remova os filtros aplicados.</p>
+        <button class="btn-outline" id="btn-reset-filters">
+          <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+          Remover filtros
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         COLUNA DIREITA: Música Selecionada + Recs
+         ───────────────────────────────────────────── -->
+    <aside id="panel-right" aria-label="Música selecionada e recomendações">
+
+      <!-- Painel da música selecionada -->
+      <div id="selected-wrap">
+
+        <!-- Estado vazio: nenhuma música selecionada -->
+        <div id="no-selection" class="no-selection" aria-live="polite">
+          <div class="pulse-ico" aria-hidden="true">
+            <i class="fa-solid fa-headphones"></i>
+          </div>
+          <h3>Selecione uma música</h3>
+          <p>Escolha uma faixa do catálogo ao lado e avalie-a para receber recomendações personalizadas.</p>
+        </div>
+
+        <!-- Detalhes da música selecionada -->
+        <div id="song-detail" class="is-hidden" aria-live="polite" aria-label="Detalhes da música selecionada">
+
+          <!-- Card de apresentação -->
+          <div class="detail-hero">
+            <div class="detail-art" id="detail-art" aria-hidden="true">
+              <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="detail-meta">
+              <span class="detail-genre-tag" id="detail-genre"></span>
+              <h2 class="detail-name" id="detail-name"></h2>
+              <p class="detail-artist">
+                <i class="fa-solid fa-user-music" aria-hidden="true"></i>
+                <span id="detail-artist"></span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Avaliação com estrelas -->
+          <div class="rating-block" aria-label="Avaliação da música">
+            <p class="rating-lbl">Avaliar esta música</p>
+            <div class="stars" id="stars" role="group" aria-label="Nota de 1 a 5 estrelas">
+              <button class="star" data-v="1" aria-label="1 estrela"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+              <button class="star" data-v="2" aria-label="2 estrelas"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+              <button class="star" data-v="3" aria-label="3 estrelas"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+              <button class="star" data-v="4" aria-label="4 estrelas"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+              <button class="star" data-v="5" aria-label="5 estrelas"><i class="fa-solid fa-star" aria-hidden="true"></i></button>
+            </div>
+            <p class="rating-hint" id="rating-hint" aria-live="polite">Clique nas estrelas para avaliar</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Painel de recomendações -->
+      <div id="recs-wrap" class="is-hidden" aria-live="polite">
+        <h2 class="block-title recs-title" id="recs-title">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          Recomendações
+        </h2>
+        <div id="recs-grid" role="list" aria-label="Músicas recomendadas para você">
+          <!-- Renderizado pelo JavaScript -->
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+</div><!-- /#app -->
+
+<!-- Script da aplicação -->
+<script src="script.js"></script>
+</body>
+</html>
